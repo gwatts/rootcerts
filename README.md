@@ -1,6 +1,7 @@
 # Root CA Certificates for Go
 
 [![GoDoc](https://godoc.org/github.com/gwatts/rootcerts?status.svg)](https://godoc.org/github.com/gwatts/rootcerts)
+[![Build Status](https://travis-ci.org/gwatts/rootcerts.svg?branch=master)](https://travis-ci.org/gwatts/rootcerts)
 
 This project converts root certificate authority certificates provided by the
 Mozilla project into a .go package that can be statically compiled into a Go
