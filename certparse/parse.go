@@ -39,13 +39,13 @@ type Cert struct {
 	Cert  *x509.Certificate
 }
 
-// TrustLevel specifies the purposes for which the certificate has been
-// marked as trusted.
-type TrustLevel struct {
-	ServerTrustedDelegator bool // Trusted for issuing server certificates
-	EmailTrustedDelegator  bool // Trusted for issuing email certificates
-	CodeTrustedDelegator   bool // Trusted for issuing code signing certificates
-}
+type TrustLevel int
+
+const (
+	ServerTrustedDelegator TrustLevel = 1 << iota // Trusted for issuing server certificates
+	EmailTrustedDelegator                         // Trusted for issuing email certificates
+	CodeTrustedDelegator                          // Trusted for issuing code signing certificates
+)
 
 // A MozValue is returned from MozScanner.ScanValue.
 type MozValue struct {
@@ -328,12 +328,17 @@ func findTrusted(objects []map[string]string) (map[string]TrustLevel, error) {
 			// https://groups.google.com/forum/#!msg/mozilla.dev.tech.crypto/ZP3Kn84VBfA/_ozb5TvRLkcJ
 			continue
 		}
-		trust := TrustLevel{
-			ServerTrustedDelegator: serverTrust == "CKT_NSS_TRUSTED_DELEGATOR",
-			EmailTrustedDelegator:  emailTrust == "CKT_NSS_TRUSTED_DELEGATOR",
-			CodeTrustedDelegator:   codeTrust == "CKT_NSS_TRUSTED_DELEGATOR",
+		trust := TrustLevel(0)
+		if serverTrust == "CKT_NSS_TRUSTED_DELEGATOR" {
+			trust |= ServerTrustedDelegator
 		}
-		if trust.ServerTrustedDelegator || trust.EmailTrustedDelegator || trust.CodeTrustedDelegator {
+		if emailTrust == "CKT_NSS_TRUSTED_DELEGATOR" {
+			trust |= EmailTrustedDelegator
+		}
+		if codeTrust == "CKT_NSS_TRUSTED_DELEGATOR" {
+			trust |= CodeTrustedDelegator
+		}
+		if trust != 0 {
 			trusted[obj["CKA_LABEL"]] = trust
 		}
 	}

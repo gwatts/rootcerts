@@ -26,6 +26,7 @@ _testmain.go
 *.test
 .DS_Store
 
+certdata.txt
 gencerts/gencerts
 
 # godeps _workspace holds all checked out dependencies

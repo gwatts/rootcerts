@@ -9,13 +9,15 @@ import (
 // Some tests to make sure the generated .go code is sane.
 
 func TestCertsByTrust(t *testing.T) {
-	lev := TrustLevel{EmailTrustedDelegator: true}
-	certs := CertsByTrust(lev)
+	certs := CertsByTrust(EmailTrustedDelegator | ServerTrustedDelegator)
 	if len(certs) < 5 {
 		t.Fatal("Unexpectedly few matching certificates")
 	}
 	for _, c := range certs {
-		if c.Trust != lev {
+		if c.Trust&EmailTrustedDelegator == 0 {
+			t.Errorf("Cert %q had incorrect trust level %#v", c.Label, c.Trust)
+		}
+		if c.Trust&ServerTrustedDelegator == 0 {
 			t.Errorf("Cert %q had incorrect trust level %#v", c.Label, c.Trust)
 		}
 	}
@@ -23,7 +25,10 @@ func TestCertsByTrust(t *testing.T) {
 
 func TestServerCertPoolOK(t *testing.T) {
 	cp := ServerCertPool()
-	sslCerts := CertsByTrust(TrustLevel{ServerTrustedDelegator: true})
+	sslCerts := CertsByTrust(ServerTrustedDelegator)
+	if len(sslCerts) < 100 {
+		t.Fatal("Unexpected few server certificates", len(sslCerts))
+	}
 	if len(sslCerts) != len(cp.Subjects()) {
 		t.Fatalf("Incorrect cert count.  expected=%d actual=%d", len(sslCerts), len(cp.Subjects()))
 	}

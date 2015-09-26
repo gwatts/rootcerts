@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	defaultDownloadURL = "http://hg.mozilla.org/projects/nss/raw-file/tip/lib/ckfw/builtins/certdata.txt"
+	defaultDownloadURL = "http://hg.mozilla.org/releases/mozilla-release/raw-file/default/security/nss/lib/ckfw/builtins/certdata.txt"
 )
 
 var (
@@ -71,11 +71,13 @@ import (
 
 // TrustLevel defines for which purposes the certificate is trusted to issue
 // certificates (ie. to act as a CA)
-type TrustLevel struct {
-    ServerTrustedDelegator bool // Trusted to issue server certificates
-    EmailTrustedDelegator  bool // Trusted to issue email signing certificates
-    CodeTrustedDelegator   bool // Trusted to issue code signing certificates
-}
+type TrustLevel int
+
+const (
+    ServerTrustedDelegator TrustLevel = 1 << iota // // Trusted for issuing server certificates
+    EmailTrustedDelegator // Trusted for issuing email certificates
+    CodeTrustedDelegator // Trusted for issuing code signing certificates
+)
 
 // A Cert defines a single unparsed certificate.
 type Cert struct {
@@ -102,18 +104,18 @@ var serverOnce sync.Once
 func ServerCertPool() *x509.CertPool {
     serverOnce.Do(func() {
         serverCertPool=  x509.NewCertPool()
-        for _, c := range CertsByTrust(TrustLevel{ServerTrustedDelegator: true}) {
+        for _, c := range CertsByTrust(ServerTrustedDelegator) {
             serverCertPool.AddCert(c.X509Cert())
         }
     })
     return serverCertPool
 }
 
-// CertsByTrust returns only those certificates exactly matching 
+// CertsByTrust returns only those certificates that match all bits of
 // the specified TrustLevel.
 func CertsByTrust(t TrustLevel) (result []Cert) {
     for _, c := range certs {
-        if c.Trust == t {
+        if c.Trust &t == t {
             result = append(result, c)
         }
     }
@@ -148,7 +150,7 @@ var certs = []Cert{
     {
         Label: "{{ .Label }}",
         Serial: "{{ .Cert.SerialNumber }}",
-        Trust: TrustLevel{ {{ .Trust.ServerTrustedDelegator }}, {{ .Trust.EmailTrustedDelegator }}, {{ .Trust.CodeTrustedDelegator }} },
+        Trust: {{ .Trust }},
         DER: {{ .Cert.Raw | indentbytes }},
     },
 {{ end }}

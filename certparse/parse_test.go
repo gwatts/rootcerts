@@ -113,8 +113,8 @@ var readTrustedExpected = []struct {
 	Organization string
 	Trust        TrustLevel
 }{
-	{"Equifax Secure CA", "Equifax", TrustLevel{true, true, true}},
-	{"Certinomis - Root CA", "Certinomis", TrustLevel{true, false, false}},
+	{"Equifax Secure CA", "Equifax", ServerTrustedDelegator | EmailTrustedDelegator | CodeTrustedDelegator},
+	{"Certinomis - Root CA", "Certinomis", ServerTrustedDelegator},
 }
 
 func TestReadTrustedCertsOk(t *testing.T) {
@@ -137,7 +137,7 @@ func TestReadTrustedCertsOk(t *testing.T) {
 		if cert.Cert.Issuer.Organization[0] != expected.Organization {
 			t.Errorf("cert %d organization mismatch expected=%q actual=%q", i, expected.Organization, cert.Cert.Issuer.Organization[0])
 		}
-		if !reflect.DeepEqual(cert.Trust, expected.Trust) {
+		if cert.Trust != expected.Trust {
 			t.Errorf("cert%d trust mismatch expected=%#v actual=%#v", i, expected.Trust, cert.Trust)
 		}
 		if !reflect.DeepEqual(cert.Data, cert.Cert.Raw) {
