@@ -16,7 +16,9 @@ certificates from the filesystem as provided by the operating system
 
 This works well, unless the program is running in any environment where these
 certificates are not installed, are not accessible, or are out of date.  This
-commonly occurs when running Go programs in a minimal docker container.
+commonly occurs when running Go programs in a minimal docker container or the 
+binary is distributed as-is to end users who may or may not be running the program
+on a machine with up to date certificates installed/accessible.
 
 Compiling the root certificates into the program provides guaranteed stable
 access to them without external dependencies.
@@ -39,7 +41,7 @@ You may either use the certificates provided at the root level of this project,
 which are periodically refreshed, or use the gencerts tool to create a
 rootcerts.go file that may be copied into your project.
 
-Calling the UpdateDefaultTransport method will make the certificates available
+Calling the `UpdateDefaultTransport` method will make the certificates available
 to the default http transport, which is sufficient for many projects.
 
 ### Using gencerts
