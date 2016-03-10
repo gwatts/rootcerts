@@ -58,6 +58,11 @@ thus be a bad idea!
 gencerts -download -package mypackage -target rootcerts.go
 ```
 
+gencerts will generate a rootcerts.go and also a rootcerts_16.go if there are 
+any certificate with a negative serial number.  Only Go version 1.6 and later
+supports such certificates, so rootcerts_16.go uses a build flag to ensure
+compatibility with older versions of Go.
+
 ## Other Notes
 
 gencerts only outputs certificates that the certdata.txt file has labeled as
@@ -74,7 +79,4 @@ Some of the information I came across while writing this tool:
 * [http://curl.haxx.se/cvssource/lib/mk-ca-bundle.pl]
 * Ubuntu ca-certificates package (certdata2pem.py)
 
-## Known Issues
 
-One certificate defined by certdata.txt has a negative serial number, which Go
-currently refuses to process (see  [https://github.com/golang/go/issues/8265])
