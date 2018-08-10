@@ -1,13 +1,7 @@
 language: go
 
-# Go 1.10 runs go vet during go test
-# go vet incorrectly treats build tags in string literals as false positive
-# see: https://github.com/golang/go/issues/13533
-script: go test -v -vet=off ./...
-
 go:
-    - 1.4
-    - 1.6
-    - 1.9
-    - 1.10
+    - "1.4"
+    - "1.6"
+    - "1.9"
     - tip
