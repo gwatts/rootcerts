@@ -1,0 +1,50 @@
+name: Update Certificates
+
+on:
+  schedule:
+    # Run at the beginning of th emonth
+    - cron: '15 13 1 * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: create branch name
+        run: 
+          echo "::set-env name=BRANCH:::auto-update-$(date +%Y%m%d-%H%M)"
+      - name: create branch
+        run: |
+          git checkout -b $BRANCH
+      - name: download certs
+        run: |
+          go run ./gencerts/gencerts.go -download -package rootcerts -target rootcerts.go
+      - name: caculate diff
+        run: |
+          DIFF=$( git diff --minimal | grep Label: | sort -h )
+
+          cat >/tmp/commit.msg <<EndOfDiffMsgInput
+          $(date '+%b/%Y') Automated certificate updates
+
+          Derived from Mozilla upstream at $(date).
+
+          Certificates added/removed/changed:
+
+          $DIFF
+          EndOfDiffMsgInput
+      - name: check for changes
+        run: |
+          git add -u rootcerts*.go
+
+          if git diff --staged --quiet -w -G '^\s*[^\/]{2}'; then
+            echo "set-output name=changes_found::false"
+          else
+            echo "set-output name=changes_found::true"
+          fi
+      - name: commit changes
+        if: changes_found
+        run: |
+          git commit --file /tmp/commit.msg
+          git push origin $BRANCH
+          hub pull-request -a gwatts -l certchanges -F /tmp/commit.msg
