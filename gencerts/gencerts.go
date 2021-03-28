@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	defaultDownloadURL = "http://hg.mozilla.org/releases/mozilla-release/raw-file/default/security/nss/lib/ckfw/builtins/certdata.txt"
+	defaultDownloadURL = "https://hg.mozilla.org/releases/mozilla-release/raw-file/default/security/nss/lib/ckfw/builtins/certdata.txt"
 )
 
 var (
