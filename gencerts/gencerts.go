@@ -51,7 +51,7 @@ var (
 )
 
 const (
-	indent     = 4
+	indent     = 3
 	indentWrap = 64
 )
 
@@ -62,12 +62,12 @@ var tplText = `{{define "main"}}package {{.package}}
 // Input file SHA1: {{ .filesha1 }}
 
 import (
-    "crypto/tls"
-    "crypto/x509"
-    "errors"
-    "fmt"
-    "net/http"
-    "sync"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
+	"fmt"
+	"net/http"
+	"sync"
 )
 
 // TrustLevel defines for which purposes the certificate is trusted to issue
@@ -75,26 +75,26 @@ import (
 type TrustLevel int
 
 const (
-    ServerTrustedDelegator TrustLevel = 1 << iota // // Trusted for issuing server certificates
-    EmailTrustedDelegator // Trusted for issuing email certificates
-    CodeTrustedDelegator // Trusted for issuing code signing certificates
+	ServerTrustedDelegator TrustLevel = 1 << iota // Trusted for issuing server certificates
+	EmailTrustedDelegator                         // Trusted for issuing email certificates
+	CodeTrustedDelegator                          // Trusted for issuing code signing certificates
 )
 
 // A Cert defines a single unparsed certificate.
 type Cert struct {
-    Label  string
-    Serial string
-    Trust  TrustLevel
-    DER    []byte
+	Label  string
+	Serial string
+	Trust  TrustLevel
+	DER    []byte
 }
 
 // X509Cert parses the certificate into a *x509.Certificate.
 func (c *Cert) X509Cert() *x509.Certificate {
-    cert, err := x509.ParseCertificate(c.DER)
-    if err != nil {
-        panic(fmt.Sprintf("unexpected failure parsing certificate %q/%s: %s", c.Label, c.Serial, err))
-    }
-    return cert
+	cert, err := x509.ParseCertificate(c.DER)
+	if err != nil {
+		panic(fmt.Sprintf("unexpected failure parsing certificate %q/%s: %s", c.Label, c.Serial, err))
+	}
+	return cert
 }
 
 var serverCertPool *x509.CertPool
@@ -103,24 +103,24 @@ var serverOnce sync.Once
 // ServerCertPool returns a pool containing all root CA certificates that are trusted
 // for issuing server certificates.
 func ServerCertPool() *x509.CertPool {
-    serverOnce.Do(func() {
-        serverCertPool=  x509.NewCertPool()
-        for _, c := range CertsByTrust(ServerTrustedDelegator) {
-            serverCertPool.AddCert(c.X509Cert())
-        }
-    })
-    return serverCertPool
+	serverOnce.Do(func() {
+		serverCertPool = x509.NewCertPool()
+		for _, c := range CertsByTrust(ServerTrustedDelegator) {
+			serverCertPool.AddCert(c.X509Cert())
+		}
+	})
+	return serverCertPool
 }
 
 // CertsByTrust returns only those certificates that match all bits of
 // the specified TrustLevel.
 func CertsByTrust(t TrustLevel) (result []Cert) {
-    for _, c := range certs {
-        if c.Trust &t == t {
-            result = append(result, c)
-        }
-    }
-    return result
+	for _, c := range certs {
+		if c.Trust&t == t {
+			result = append(result, c)
+		}
+	}
+	return result
 }
 
 // UpdateDefaultTransport updates the configuration for http.DefaultTransport
@@ -128,39 +128,39 @@ func CertsByTrust(t TrustLevel) (result []Cert) {
 //
 // It will return an error if the DefaultTransport is not actually an *http.Transport.
 func UpdateDefaultTransport() error {
-    if t, ok := http.DefaultTransport.(*http.Transport); ok {
-        if t.TLSClientConfig == nil {
-            t.TLSClientConfig = &tls.Config{RootCAs: ServerCertPool()}
-        } else {
-            t.TLSClientConfig.RootCAs = ServerCertPool()
-        }
-    } else {
-        return errors.New("http.DefaultTransport is not an *http.Transport")
-    }
-    return nil
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		if t.TLSClientConfig == nil {
+			t.TLSClientConfig = &tls.Config{RootCAs: ServerCertPool()}
+		} else {
+			t.TLSClientConfig.RootCAs = ServerCertPool()
+		}
+	} else {
+		return errors.New("http.DefaultTransport is not an *http.Transport")
+	}
+	return nil
 }
 
 // Certs returns all trusted certificates extracted from certdata.txt.
 func Certs() []Cert {
-    return certs
+	return certs
 }
 
 // make this unexported to avoid generating a huge documentation page.
 var certs = []Cert{
-{{ range .certs -}}
-	{{ if ge .Cert.SerialNumber.Sign 0 -}}
-    {
-        Label: "{{ .Label }}",
-        Serial: "{{ .Cert.SerialNumber }}",
-        Trust: {{ .Trust }},
-        DER: {{ .Cert.Raw | indentbytes }},
-    },
+{{- range .certs }}
+	{{- if ge .Cert.SerialNumber.Sign 0 }}
+	{
+		Label:  "{{ .Label }}",
+		Serial: "{{ .Cert.SerialNumber }}",
+		Trust:  {{ .Trust }},
+		DER: {{ .Cert.Raw | indentbytes }},
+	},
 	{{- end }}
 {{- end }}
 }
 {{end}}
 
-{{define "go1.6"}}
+{{- define "go1.6" -}}
 // +build go1.6
 
 package {{.package}}
@@ -171,20 +171,18 @@ func init() {
 
 // Certificates with a negative serial number are only supported in Go 1.6+
 var negCerts = []Cert{
-{{ range .certs -}}
-	{{ if lt .Cert.SerialNumber.Sign 0 -}}
-    {
-        Label: "{{ .Label }}",
-        Serial: "{{ .Cert.SerialNumber }}",
-        Trust: {{ .Trust }},
-        DER: {{ .Cert.Raw | indentbytes }},
-    },
+{{- range .certs }}
+	{{- if lt .Cert.SerialNumber.Sign 0 }}
+	{
+		Label:  "{{ .Label }}",
+		Serial: "{{ .Cert.SerialNumber }}",
+		Trust:  {{ .Trust }},
+		DER: {{ .Cert.Raw | indentbytes }},
+	},
 	{{- end }}
 {{- end }}
 }
 {{end}}
-
-}
 `
 var funcMap = template.FuncMap{
 	"indentbytes": indentBytes,
@@ -199,13 +197,18 @@ func fail(format string, a ...interface{}) {
 
 func indentBytes(data []byte) string {
 	var out []byte
-	idt := strings.Repeat(" ", indent)
+	idt := strings.Repeat("\t", indent)
 
 	s := fmt.Sprintf("%#v", data)
+	fist := true
 	for len(s) > indentWrap {
 		if sp := strings.IndexByte(s[indentWrap:], ','); sp > -1 {
-			out = append(out, idt...)
-			out = append(out, s[:indentWrap+sp+1]...)
+			if !fist {
+				out = append(out, idt...)
+			} else {
+				fist = false
+			}
+			out = append(out, strings.TrimSpace(s[:indentWrap+sp+1])...)
 			out = append(out, '\n')
 			s = s[indentWrap+sp+1:]
 		} else {
@@ -213,7 +216,7 @@ func indentBytes(data []byte) string {
 		}
 	}
 	out = append(out, idt...)
-	out = append(out, s...)
+	out = append(out, strings.TrimSpace(s)...)
 	return string(out)
 }
 
