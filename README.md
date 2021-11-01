@@ -79,4 +79,6 @@ Some of the information I came across while writing this tool:
 * [http://curl.haxx.se/cvssource/lib/mk-ca-bundle.pl]
 * Ubuntu ca-certificates package (certdata2pem.py)
 
+## Similar Projects
 
+* https://github.com/breml/rootcerts
