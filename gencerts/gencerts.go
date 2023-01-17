@@ -255,8 +255,9 @@ func main() {
 
 	var (
 		source           io.Reader
-		target, target16 io.Writer
+		target, target16 io.WriteCloser
 		err              error
+		fn16             string
 	)
 
 	if *download {
@@ -287,7 +288,7 @@ func main() {
 		if err != nil {
 			fail("Failed to open target file: %s", err)
 		}
-		if fn16 := fmt16name(*outputFile); fn16 != "" {
+		if fn16 = fmt16name(*outputFile); fn16 != "" {
 			target16, err = os.Create(fn16)
 			if err != nil {
 				fail("Failed to open target file: %s", err)
@@ -314,9 +315,17 @@ func main() {
 		fail("Template execution failed: %s", err)
 	}
 
-	if hasNeg(certs) && target16 != nil {
-		if err = tpl.ExecuteTemplate(target16, "go1.6", tplParams); err != nil {
-			fail("Template execution failed: %s", err)
+	if target16 != nil {
+		if hasNeg(certs) {
+			if err = tpl.ExecuteTemplate(target16, "go1.6", tplParams); err != nil {
+				fail("Template execution failed: %s", err)
+			}
+		} else {
+			// We don't want an empty _16.go file if there are no negative certs
+			_ = target16.Close()
+			if err = os.Remove(fn16); err != nil {
+				fail("Error removing _16 file: %s", err)
+			}
 		}
 	}
 }
