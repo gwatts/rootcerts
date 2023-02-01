@@ -30,7 +30,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -148,38 +147,12 @@ func Certs() []Cert {
 // make this unexported to avoid generating a huge documentation page.
 var certs = []Cert{
 {{- range .certs }}
-	{{- if ge .Cert.SerialNumber.Sign 0 }}
 	{
 		Label:  "{{ .Label }}",
 		Serial: "{{ .Cert.SerialNumber }}",
 		Trust:  {{ .Trust }},
 		DER: {{ .Cert.Raw | indentbytes }},
 	},
-	{{- end }}
-{{- end }}
-}
-{{end}}
-
-{{- define "go1.6" -}}
-// +build go1.6
-
-package {{.package}}
-
-func init() {
-	certs = append(certs, negCerts...)
-}
-
-// Certificates with a negative serial number are only supported in Go 1.6+
-var negCerts = []Cert{
-{{- range .certs }}
-	{{- if lt .Cert.SerialNumber.Sign 0 }}
-	{
-		Label:  "{{ .Label }}",
-		Serial: "{{ .Cert.SerialNumber }}",
-		Trust:  {{ .Trust }},
-		DER: {{ .Cert.Raw | indentbytes }},
-	},
-	{{- end }}
 {{- end }}
 }
 {{end}}
@@ -234,29 +207,13 @@ func newHashReader(r io.Reader, h hash.Hash) *hashReader {
 	return &hashReader{h, r}
 }
 
-func fmt16name(name string) string {
-	if ext := filepath.Ext(name); ext != "" {
-		return name[0:len(name)-len(ext)] + "_16" + ext
-	}
-	return ""
-}
-
-func hasNeg(certs []certparse.Cert) bool {
-	for _, cert := range certs {
-		if cert.Cert.SerialNumber.Sign() < 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func main() {
 	flag.Parse()
 
 	var (
-		source           io.Reader
-		target, target16 io.Writer
-		err              error
+		source io.Reader
+		target io.Writer
+		err    error
 	)
 
 	if *download {
@@ -287,13 +244,6 @@ func main() {
 		if err != nil {
 			fail("Failed to open target file: %s", err)
 		}
-		if fn16 := fmt16name(*outputFile); fn16 != "" {
-			target16, err = os.Create(fn16)
-			if err != nil {
-				fail("Failed to open target file: %s", err)
-			}
-		}
-
 	}
 
 	hashSource := newHashReader(source, sha1.New())
@@ -312,11 +262,5 @@ func main() {
 
 	if err = tpl.ExecuteTemplate(target, "main", tplParams); err != nil {
 		fail("Template execution failed: %s", err)
-	}
-
-	if hasNeg(certs) && target16 != nil {
-		if err = tpl.ExecuteTemplate(target16, "go1.6", tplParams); err != nil {
-			fail("Template execution failed: %s", err)
-		}
 	}
 }
